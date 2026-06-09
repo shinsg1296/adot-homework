@@ -55,6 +55,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0
 .muted{color:var(--ink-muted);font-size:13px;}
 .status{font-size:13px;margin-top:9px;text-align:center;min-height:18px;}
 .status.ok{color:var(--success);}.status.err{color:var(--danger);}
+.sc-item{border:1px solid var(--line);border-radius:var(--r-tile);padding:9px 10px;margin-bottom:8px;background:var(--surface-alt);}
+.sc-del{flex:0 0 auto!important;width:auto;background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger-line);border-radius:var(--r-tile);padding:0 13px;font-weight:700;cursor:pointer;font-size:13px;}
+.b-fixed{background:var(--success-soft);color:var(--success);border:1px solid var(--success-line);}
+.b-expect{background:var(--warning-soft);color:var(--warning);border:1px solid var(--warning-line);}
+.sc-row{display:flex;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.5;}
+.sc-row:last-child{border-bottom:none;}
+.sc-tp{flex:0 0 auto;font-weight:700;font-size:11px;color:var(--brand-dark);background:var(--brand-soft);border-radius:var(--r-pill);padding:2px 8px;}
+.sc-src{font-weight:600;}
+.sc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.sc-mini{font-size:12px;color:var(--ink-faint);}
 </style></head><body>
 <h1><span class="itile"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg></span>숙제 관리</h1>
 
@@ -69,13 +79,23 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0
 
 <!-- 학생 화면 -->
 <div id="studentView" class="hidden">
-  <div class="seg" id="stuRange"><button class="on" data-r="today" onclick="stuRangePick('today')">오늘</button><button data-r="week" onclick="stuRangePick('week')">이번주</button><button data-r="all" onclick="stuRangePick('all')">전체</button></div>
-  <div id="stuList"></div>
+  <div class="seg" id="stuMain"><button class="on" onclick="stuMainPick('hw')">내 숙제</button><button onclick="stuMainPick('scope')">시험범위</button></div>
+  <div id="stuHwWrap">
+    <div class="seg" id="stuRange"><button class="on" data-r="today" onclick="stuRangePick('today')">오늘</button><button data-r="week" onclick="stuRangePick('week')">이번주</button><button data-r="all" onclick="stuRangePick('all')">전체</button></div>
+    <div id="stuList"></div>
+  </div>
+  <div id="stuScopeWrap" class="hidden">
+    <div class="card">
+      <div class="row"><div><label>학교</label><input id="ssSchool" placeholder="예: 동신여고"></div><div><label>학년</label><select id="ssGrade"><option>고1</option><option>고2</option><option>고3</option><option>중1</option><option>중2</option><option>중3</option></select></div></div>
+      <button class="btn" onclick="loadStuScope()" style="margin-top:8px;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3"/></svg>시험범위 보기</button>
+    </div>
+    <div id="ssList"></div>
+  </div>
 </div>
 
 <!-- 선생님 화면 -->
 <div id="teacherView" class="hidden">
-  <div class="seg" id="tTab"><button class="on" onclick="tTabPick('assign')">숙제 배정</button><button onclick="tTabPick('status')">현황</button></div>
+  <div class="seg" id="tTab"><button class="on" onclick="tTabPick('assign')">숙제 배정</button><button onclick="tTabPick('status')">현황</button><button onclick="tTabPick('scope')">시험범위</button></div>
   <!-- 배정 -->
   <div id="tAssign">
     <div class="card">
@@ -91,6 +111,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0
   <div id="tStatus" class="hidden">
     <div class="card"><label>기준일</label><input id="sDate" type="date" onchange="loadStatus()"><div class="muted" id="sSummary" style="margin-top:8px;"></div></div>
     <div id="statusList"></div>
+  </div>
+  <!-- 시험범위 -->
+  <div id="tScope" class="hidden">
+    <div class="card">
+      <div class="sc-head"><b id="scFormTitle">새 시험범위</b><span class="sc-mini" id="scEditId"></span><span style="margin-left:auto;"><button class="sc-del" onclick="newScope()" style="background:var(--surface);color:var(--brand);border-color:var(--brand-line);">새로 작성</button></span></div>
+      <div class="row"><div><label>학교</label><input id="scSchool" placeholder="예: 동신여고"></div><div><label>학년</label><select id="scGrade"><option>고1</option><option>고2</option><option>고3</option><option>중1</option><option>중2</option><option>중3</option></select></div></div>
+      <div class="row" style="margin-top:8px;"><div><label>시험명</label><input id="scExam" placeholder="예: 1학기 기말"></div><div><label>시험일</label><input id="scDate" type="date"></div></div>
+      <label style="margin-top:10px;">시험범위 항목</label>
+      <div id="scItems"></div>
+      <button class="btn btn-ghost" onclick="addScopeItem()" style="margin-top:2px;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>항목 추가</button>
+      <button class="btn" id="scSaveBtn" onclick="saveScope()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>저장</button>
+      <div class="status" id="scMsg"></div>
+    </div>
+    <div class="sc-mini" style="margin:4px 2px;">저장된 시험범위</div>
+    <div id="scList"></div>
   </div>
 </div>
 </div>
@@ -110,7 +145,7 @@ function post(params){var fd=new FormData();fd.append('token',TOKEN);for(var k i
 
 function doLogin(){var id=(document.getElementById('adotId').value||'').trim();var m=document.getElementById('loginMsg');if(!id){m.className='status err';m.textContent='아이디를 입력하세요';return;}if(TEACHERS[id]){try{localStorage.setItem('hw_login',JSON.stringify({id:id,name:TEACHERS[id]}));}catch(e){}enter(id,TEACHERS[id]);return;}var b=document.getElementById('loginBtn');b.disabled=true;b.textContent='확인 중…';m.textContent='';checkLogin(id).then(function(res){b.disabled=false;b.textContent='로그인';if(res&&res.ok){try{localStorage.setItem('hw_login',JSON.stringify({id:res.id,name:res.name}));}catch(e){}enter(res.id,res.name);}else{m.className='status err';m.textContent='없는 아이디예요. 에이닷 아이디를 확인해주세요.';}});}
 function logout(){try{localStorage.removeItem('hw_login');}catch(e){}location.reload();}
-function enter(id,name){user={id:id,name:name};isTeacher=/T$/i.test(id)||/(선생|T$)/.test(name);document.getElementById('who').textContent=name+'님';document.getElementById('roleTag').textContent=isTeacher?' · 선생님':'';document.getElementById('loginCard').classList.add('hidden');document.getElementById('appArea').classList.remove('hidden');if(isTeacher){document.getElementById('teacherView').classList.remove('hidden');initTeacher();}else{document.getElementById('studentView').classList.remove('hidden');stuRangePick('today');}}
+function enter(id,name){user={id:id,name:name};isTeacher=/T$/i.test(id)||/(선생|T$)/.test(name);document.getElementById('who').textContent=name+'님';document.getElementById('roleTag').textContent=isTeacher?' · 선생님':'';document.getElementById('loginCard').classList.add('hidden');document.getElementById('appArea').classList.remove('hidden');if(isTeacher){document.getElementById('teacherView').classList.remove('hidden');initTeacher();}else{document.getElementById('studentView').classList.remove('hidden');stuRangePick('today');try{var sp=JSON.parse(localStorage.getItem('hw_scope_pick')||'null');if(sp){document.getElementById('ssSchool').value=sp.school||'';if(sp.grade)document.getElementById('ssGrade').value=sp.grade;}}catch(e){}}}
 (function(){try{var s=JSON.parse(localStorage.getItem('hw_login')||'null');if(s&&s.id)enter(s.id,s.name);}catch(e){}})();
 
 // ── 학생 ──
@@ -124,9 +159,28 @@ function prevPhoto(inp,hid){var f=inp.files[0];if(!f)return;var img=new Image();
 function submitHw(hid){if(!photoData[hid]){alert('완료 사진을 먼저 골라주세요');return;}var b=document.getElementById('sb_'+hid);b.disabled=true;b.textContent='제출 중…';var memo=(document.getElementById('memo_'+hid)||{}).value||'';post({action:'hwSubmit',hid:hid,id:user.id,name:user.name,photo:photoData[hid],memo:memo}).then(function(j){if(j&&j.ok){loadStuList();}else{b.disabled=false;b.textContent='완료 사진 인증';alert('제출 실패: '+((j&&j.error)||''));}});}
 
 // ── 선생님 ──
-function tTabPick(t){document.querySelectorAll('#tTab button').forEach(function(b,i){b.classList.toggle('on',(t==='assign')===(i===0));});document.getElementById('tAssign').classList.toggle('hidden',t!=='assign');document.getElementById('tStatus').classList.toggle('hidden',t!=='status');if(t==='status')loadStatus();}
+function tTabPick(t){var tabs=['assign','status','scope'];document.querySelectorAll('#tTab button').forEach(function(b,i){b.classList.toggle('on',tabs[i]===t);});document.getElementById('tAssign').classList.toggle('hidden',t!=='assign');document.getElementById('tStatus').classList.toggle('hidden',t!=='status');document.getElementById('tScope').classList.toggle('hidden',t!=='scope');if(t==='status')loadStatus();if(t==='scope')initScope();}
 function initTeacher(){document.getElementById('sDate').value=new Date().toISOString().slice(0,10);jsonp(HW_API+'?action=hwRoster&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){roster=(j&&j.roster)||[];var s=document.getElementById('aStu');s.innerHTML=roster.map(function(r){return '<option value="'+esc(r.id)+'">'+esc(r.name)+(r.school?' ('+esc(r.school)+')':'')+'</option>';}).join('')||'<option value="">(명단 로드 실패 — 백엔드 배포 후 표시)</option>';});}
 function assignHw(){var stu=document.getElementById('aStu').value;var subj=document.getElementById('aSubj').value.trim();var m=document.getElementById('aMsg');if(!stu||!subj){m.className='status err';m.textContent='학생과 과목은 필수예요';return;}var b=document.getElementById('aBtn');b.disabled=true;m.textContent='';var snm=(roster.find(function(r){return r.id===stu;})||{}).name||'';post({action:'hwAssign',byId:user.id,byName:user.name,stuId:stu,stuName:snm,subj:subj,range:document.getElementById('aRange').value.trim(),due:document.getElementById('aDue').value,body:document.getElementById('aBody').value.trim()}).then(function(j){b.disabled=false;if(j&&j.ok){m.className='status ok';m.textContent=snm+' 학생에게 배정 완료';['aSubj','aRange','aBody'].forEach(function(id){document.getElementById(id).value='';});}else{m.className='status err';m.textContent='실패: '+((j&&j.error)||'');}});}
 function loadStatus(){var d=document.getElementById('sDate').value;var L=document.getElementById('statusList');L.innerHTML='<div class="empty">불러오는 중…</div>';jsonp(HW_API+'?action=hwStatus&token='+TOKEN+'&id='+encodeURIComponent(user.id)+'&date='+d).then(function(j){var items=(j&&j.items)||[];var sub=document.getElementById('sSummary');var done=items.filter(function(i){return i.status==='승인';}).length,subm=items.filter(function(i){return i.status==='제출';}).length,wait=items.filter(function(i){return !i.status||i.status==='미제출';}).length;sub.textContent='배정 '+items.length+'건 · 승인 '+done+' · 확인대기 '+subm+' · 미제출 '+wait;if(!items.length){L.innerHTML='<div class="card empty">해당일 배정 숙제가 없어요.</div>';return;}L.innerHTML=items.map(function(h){return '<div class="card"><div class="hw-top"><span class="hw-title">'+esc(h.stuName)+' · '+esc(h.subj)+'</span>'+badge(h.status)+'</div><div class="hw-meta">'+(h.range?'범위: '+esc(h.range)+' · ':'')+'기한: '+esc(h.due||'-')+'</div>'+(h.photo?'<div class="hw-photo"><img src="'+esc(h.photo)+'"></div>':'')+(h.memo?'<div class="hw-meta">학생메모: '+esc(h.memo)+'</div>':'')+(h.status==='제출'?'<div class="row" style="margin-top:8px;"><button class="btn btn-ok" onclick="setStatus(\''+h.hid+'\',\'승인\')">승인</button><button class="btn btn-ghost" onclick="setStatus(\''+h.hid+'\',\'반려\')">반려</button></div>':'')+'</div>';}).join('');});}
 function setStatus(hid,st){post({action:'hwSetStatus',byId:user.id,hid:hid,status:st}).then(function(j){if(j&&j.ok)loadStatus();else alert('실패');});}
+
+// ── 시험범위 (선생님) ──
+var SCOPE_TYPES=['모의고사','부교재','교과서','단어','기타'];
+var scEditing=null, scopeCache=[];
+function scopeItemHtml(it){it=it||{};var topts=SCOPE_TYPES.map(function(t){return '<option'+(it.type===t?' selected':'')+'>'+t+'</option>';}).join('');var sopts=['확정','예상'].map(function(s){return '<option'+(it.status===s?' selected':'')+'>'+s+'</option>';}).join('');return '<div class="sc-item"><div class="row"><select class="sc-f-type" style="flex:0 0 96px;">'+topts+'</select><input class="sc-f-src" placeholder="출처 (예: 수능특강 Light 영어)" value="'+esc(it.source||'')+'"></div><div class="row" style="margin-top:6px;"><input class="sc-f-range" placeholder="범위 (예: 9~16강 / 18~45번 / 3과)" value="'+esc(it.range||'')+'"><select class="sc-f-status" style="flex:0 0 82px;">'+sopts+'</select><button class="sc-del" onclick="this.closest(\'.sc-item\').remove()">삭제</button></div></div>';}
+function addScopeItem(it){document.getElementById('scItems').insertAdjacentHTML('beforeend',scopeItemHtml(it&&it.type?it:null));}
+function collectScope(){var items=[];document.querySelectorAll('#scItems .sc-item').forEach(function(el){var src=el.querySelector('.sc-f-src').value.trim();var rng=el.querySelector('.sc-f-range').value.trim();if(!src&&!rng)return;items.push({type:el.querySelector('.sc-f-type').value,source:src,range:rng,status:el.querySelector('.sc-f-status').value});});return items;}
+function newScope(){scEditing=null;document.getElementById('scFormTitle').textContent='새 시험범위';document.getElementById('scEditId').textContent='';['scSchool','scExam','scDate'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('scItems').innerHTML='';addScopeItem();document.getElementById('scMsg').textContent='';}
+function saveScope(){var school=document.getElementById('scSchool').value.trim();var grade=document.getElementById('scGrade').value;var m=document.getElementById('scMsg');if(!school){m.className='status err';m.textContent='학교를 입력하세요';return;}var items=collectScope();var b=document.getElementById('scSaveBtn');b.disabled=true;m.textContent='';post({action:'scopeSave',id:scEditing||'',byId:user.id,byName:user.name,school:school,grade:grade,examName:document.getElementById('scExam').value.trim(),examDate:document.getElementById('scDate').value,items:JSON.stringify(items)}).then(function(j){b.disabled=false;if(j&&j.ok){m.className='status ok';m.textContent='저장 완료';scEditing=j.id;document.getElementById('scEditId').textContent='(수정 모드)';document.getElementById('scFormTitle').textContent='시험범위 수정';loadScopeList();}else{m.className='status err';m.textContent='실패: '+((j&&j.error)||'');}});}
+function statusBadge(s){return s==='예상'?'<span class="badge b-expect">예상</span>':'<span class="badge b-fixed">확정</span>';}
+function scopeCard(s,actions){var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}var rows=items.map(function(it){return '<div class="sc-row"><span class="sc-tp">'+esc(it.type||'')+'</span><span style="flex:1;"><span class="sc-src">'+esc(it.source||'')+'</span>'+(it.range?' <span class="sc-mini">'+esc(it.range)+'</span>':'')+'</span>'+statusBadge(it.status)+'</div>';}).join('')||'<div class="sc-mini" style="padding:6px 0;">항목 없음</div>';var act=actions?'<div class="row" style="margin-top:8px;"><button class="btn btn-ghost" onclick="editScope(\''+s.id+'\')">수정</button><button class="sc-del" style="flex:1;" onclick="deleteScope(\''+s.id+'\')">삭제</button></div>':'';return '<div class="card"><div class="sc-head"><b>'+esc(s.school)+' '+esc(s.grade)+'</b>'+(s.examName?'<span class="sc-mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="sc-mini">· '+esc(s.examDate)+'</span>':'')+'</div>'+rows+act+'</div>';}
+function loadScopeList(){var L=document.getElementById('scList');L.innerHTML='<div class="empty">불러오는 중…</div>';jsonp(HW_API+'?action=scopeList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){scopeCache=(j&&j.scopes)||[];if(!scopeCache.length){L.innerHTML='<div class="card empty">저장된 시험범위가 없어요.</div>';return;}L.innerHTML=scopeCache.map(function(s){return scopeCard(s,true);}).join('');});}
+function initScope(){if(!document.getElementById('scItems').children.length)newScope();loadScopeList();}
+function editScope(id){var s=scopeCache.find(function(x){return x.id===id;});if(!s)return;scEditing=id;document.getElementById('scFormTitle').textContent='시험범위 수정';document.getElementById('scEditId').textContent='(수정 모드)';document.getElementById('scSchool').value=s.school;if(s.grade)document.getElementById('scGrade').value=s.grade;document.getElementById('scExam').value=s.examName||'';document.getElementById('scDate').value=(s.examDate||'').slice(0,10);var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!items.length)items=[{}];document.getElementById('scItems').innerHTML='';items.forEach(function(it){document.getElementById('scItems').insertAdjacentHTML('beforeend',scopeItemHtml(it));});window.scrollTo(0,0);document.getElementById('scMsg').textContent='';}
+function deleteScope(id){if(!confirm('이 시험범위를 삭제할까요?'))return;post({action:'scopeDelete',byId:user.id,id:id}).then(function(j){if(j&&j.ok){if(scEditing===id)newScope();loadScopeList();}else alert('실패');});}
+
+// ── 시험범위 (학생) ──
+function stuMainPick(w){document.querySelectorAll('#stuMain button').forEach(function(b,i){b.classList.toggle('on',(w==='hw')===(i===0));});document.getElementById('stuHwWrap').classList.toggle('hidden',w!=='hw');document.getElementById('stuScopeWrap').classList.toggle('hidden',w!=='scope');}
+function loadStuScope(){var school=document.getElementById('ssSchool').value.trim();var grade=document.getElementById('ssGrade').value;try{localStorage.setItem('hw_scope_pick',JSON.stringify({school:school,grade:grade}));}catch(e){}var L=document.getElementById('ssList');if(!school){L.innerHTML='<div class="card empty">학교를 입력하세요.</div>';return;}L.innerHTML='<div class="empty">불러오는 중…</div>';jsonp(HW_API+'?action=scopeView&token='+TOKEN+'&school='+encodeURIComponent(school)+'&grade='+encodeURIComponent(grade)).then(function(j){var ss=(j&&j.scopes)||[];if(!ss.length){L.innerHTML='<div class="card empty">해당 학교·학년의 시험범위가 아직 없어요.</div>';return;}L.innerHTML=ss.map(function(s){return scopeCard(s,false);}).join('');});}
 </script></body></html>
