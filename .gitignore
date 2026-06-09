@@ -1,0 +1,9 @@
+# 백엔드(학생 174명 PII 임베드) — 절대 공개 금지
+backend_Code.gs
+_gen_backend.py
+_wlogin_full.json
+# 임시/비밀
+_gz*.txt
+_poster*.py
+*.local
+.env
