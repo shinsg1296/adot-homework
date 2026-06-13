@@ -243,7 +243,7 @@ function setStatus(hid,st){post({action:'hwSetStatus',byId:user.id,hid:hid,statu
 var SCOPE_TYPES=['모의고사','부교재','교과서','단어','기타'];
 var scEditing=null, scopeCache=[];
 // ── 출처 카탈로그(AINGEL식 선택) ──
-var CAT_BOOK=['수능특강 Light 영어','수능특강 영어','수능특강 영어독해연습','수능완성 영어','첫단추 독해유형편','올림포스 독해의 기본','Reading Power 유형편','minute70','직접 입력'];
+var CAT_BOOK=['수능특강 Light 영어','수능특강 영어','수능특강 영어독해연습','수능완성 영어','첫단추 독해유형편','N기출 수능기출 Level2','올림포스 독해의 기본','Reading Power 유형편','minute70','직접 입력'];
 // 2022 개정 영어 교과서 저자 (중1·중2·고1·고2 적용 학년). 고등 공통영어 10종+중학 영어 = 전부 풀네임(출판사 공식사이트 확인)
 var CAT_PUB=['능률 오선영','능률 민병천','능률 김기택','YBM 박준언','YBM 김은형','천재 조수경','천재 강상구','천재 이재영','동아 이병민','동아 윤정미','미래엔 한송이','비상 홍민표','지학사 신상근','직접 입력'];
 // 2022 개정 과목: 공통영어1·2(고1)·영어Ⅰ·Ⅱ(고2)·영어1·2(중1·2)·독해와작문/회화(고2 선택)
@@ -310,15 +310,18 @@ var BUTTONUP_GROUPS=[
   _bg('독해모고2회','독해 모의고사 2회',_seq(1,17)),
   _bg('독해모고3회','독해 모의고사 3회',_seq(1,16))
 ];
+// N기출 수능기출 Level2(2026) 고2 — 미니테스트 3·4 통합, 기출 15지문(교안 _nq_level2_mini34.json). 칸=출처약식
+var NQ_L2_GROUPS=[_bg('미니3_4','미니테스트 3·4',['20.9 21','19.9 30','24.9 31','25.9 34','23.11 33','23.3 환경','24.3 39','21 관점','23.3 자유','21.6 34','24.9 34','23.6 32','21.6 36','25.9 37','24.10 39'])];
 // 책 이름 → 그룹 구조 [{k:키,l:라벨,ps:지문들}]
 function bookGroups(book){
   var b=String(book||'');
   if(/minute\s*70/i.test(b)) return Object.keys(MINUTE70_PASSAGES).map(Number).sort(function(a,c){return a-c;}).map(function(n){return {k:String(n),l:n+'회',ps:MINUTE70_PASSAGES[n]};});
   if(/첫단추/.test(b)) return BUTTONUP_GROUPS;
+  if(/N\s*기출|n기출/i.test(b)) return NQ_L2_GROUPS;
   if(/수능특강\s*(light|라이트)/i.test(b)) return Object.keys(LIGHT_PASSAGES).map(Number).sort(function(a,c){return a-c;}).map(function(n){return {k:String(n),l:n+'강',ps:LIGHT_PASSAGES[n]};});
   return range1(15).map(function(n){return {k:String(n),l:n+'강',ps:['G','1','2','3','4']};});
 }
-function bookSuffix(book){return /minute\s*70/i.test(String(book||''))?'회':'강';}
+function bookSuffix(book){var b=String(book||'');return /minute\s*70/i.test(b)?'회':(/N\s*기출|n기출|첫단추/i.test(b)?'':'강');}
 function bkPassGridHtml(book,sel){
   sel=sel||{};
   var groups=bookGroups(book).map(function(g){
@@ -402,11 +405,17 @@ function collectScope(cid){var items=[];document.querySelectorAll('#'+(cid||'scI
 function newScope(){scEditing=null;document.getElementById('scFormTitle').textContent='새 시험범위';document.getElementById('scEditId').textContent='';['scSchool','scExam','scDate'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('scItems').innerHTML='';addScopeItem();document.getElementById('scMsg').textContent='';}
 function saveScope(){var school=document.getElementById('scSchool').value.trim();var grade=document.getElementById('scGrade').value;var m=document.getElementById('scMsg');if(!school){m.className='status err';m.textContent='학교를 입력하세요';return;}var items=collectScope();var b=document.getElementById('scSaveBtn');b.disabled=true;m.textContent='';post({action:'scopeSave',id:scEditing||'',byId:user.id,byName:user.name,school:school,grade:grade,examName:document.getElementById('scExam').value.trim(),examDate:document.getElementById('scDate').value,items:JSON.stringify(items)}).then(function(j){b.disabled=false;if(j&&j.ok){m.className='status ok';m.textContent='저장 완료';scEditing=j.id;document.getElementById('scEditId').textContent='(수정 모드)';document.getElementById('scFormTitle').textContent='시험범위 수정';loadScopeList();}else{m.className='status err';m.textContent='실패: '+((j&&j.error)||'');}});}
 function statusBadge(s){return s==='예상'?'<span class="badge b-expect">예상</span>':'<span class="badge b-fixed">확정</span>';}
-function scopeCard(s,actions){var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}var rows=items.map(function(it){return '<div class="sc-row"><span class="sc-tp">'+esc(it.type||'')+'</span><span style="flex:1;"><span class="sc-src">'+esc(it.source||'')+'</span>'+(it.range?' <span class="sc-mini">'+esc(it.range)+'</span>':'')+'</span>'+statusBadge(it.status)+'</div>';}).join('')||'<div class="sc-mini" style="padding:6px 0;">항목 없음</div>';var act=actions?'<div class="row" style="margin-top:8px;"><button class="btn btn-ghost" onclick="editScope(\''+s.id+'\')">수정</button><button class="sc-del" style="flex:1;" onclick="deleteScope(\''+s.id+'\')">삭제</button></div>':'';return '<div class="card"><div class="sc-head"><b>'+esc(s.school)+' '+esc(s.grade)+'</b>'+(s.examName?'<span class="sc-mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="sc-mini">· '+esc(s.examDate)+'</span>':'')+'</div>'+rows+act+'</div>';}
-function loadScopeList(){var L=document.getElementById('scList');L.innerHTML='<div class="empty">불러오는 중…</div>';jsonp2(HW_API+'?action=scopeList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){scopeCache=(j&&j.scopes)||[];if(!scopeCache.length){L.innerHTML='<div class="card empty">저장된 시험범위가 없어요.</div>';return;}L.innerHTML=scopeCache.map(function(s){return scopeCard(s,true);}).join('');});}
+function scopeCard(s,actions){var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!Array.isArray(items))items=[];var rows=items.map(function(it){return '<div class="sc-row"><span class="sc-tp">'+esc(it.type||'')+'</span><span style="flex:1;"><span class="sc-src">'+esc(it.source||'')+'</span>'+(it.range?' <span class="sc-mini">'+esc(it.range)+'</span>':'')+'</span>'+statusBadge(it.status)+'</div>';}).join('')||'<div class="sc-mini" style="padding:6px 0;">항목 없음</div>';var act=actions?'<div class="row" style="margin-top:8px;"><button class="btn btn-ghost" onclick="editScope(\''+s.id+'\')">수정</button><button class="sc-del" style="flex:1;" onclick="deleteScope(\''+s.id+'\')">삭제</button></div>':'';return '<div class="card"><div class="sc-head"><b>'+esc(s.school)+' '+esc(s.grade)+'</b>'+(s.examName?'<span class="sc-mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="sc-mini">· '+esc(s.examDate)+'</span>':'')+'</div>'+rows+act+'</div>';}
+function renderScopeList(L){L.innerHTML=scopeCache.length?scopeCache.map(function(s){return scopeCard(s,true);}).join(''):'<div class="card empty">저장된 시험범위가 없어요.</div>';}
+function loadScopeList(){var L=document.getElementById('scList');var ck='hw_scope_cache_'+user.id;var cached=null;try{cached=JSON.parse(localStorage.getItem(ck)||'null');}catch(e){}
+  if(cached&&cached.length){scopeCache=cached;renderScopeList(L);}else{L.innerHTML='<div class="empty">불러오는 중…</div>';}
+  jsonp2(HW_API+'?action=scopeList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
+    if(j&&j.scopes){scopeCache=j.scopes;try{localStorage.setItem(ck,JSON.stringify(j.scopes));}catch(e){}renderScopeList(L);}
+    else if(!(cached&&cached.length)){L.innerHTML='<div class="card empty">불러오기 실패 — 잠시 후 다시 시도해주세요.</div>';}
+  });}
 function initScope(){if(!document.getElementById('scItems').children.length)newScope();loadScopeList();loadBriefs();loadSubs();}
 function editScope(id){var s=scopeCache.find(function(x){return x.id===id;});if(!s)return;scEditing=id;document.getElementById('scFormTitle').textContent='시험범위 수정';document.getElementById('scEditId').textContent='(수정 모드)';function setSel(id,val){var sel=document.getElementById(id);if(!sel)return;if(val&&![].slice.call(sel.options).some(function(o){return o.value===val;}))sel.insertAdjacentHTML('beforeend','<option>'+esc(val)+'</option>');sel.value=val;}
-  setSel('scSchool',s.school);if(s.grade)document.getElementById('scGrade').value=s.grade;setSel('scExam',s.examName||'');document.getElementById('scDate').value=(s.examDate||'').slice(0,10);var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}
+  setSel('scSchool',s.school);if(s.grade)document.getElementById('scGrade').value=s.grade;setSel('scExam',s.examName||'');document.getElementById('scDate').value=(s.examDate||'').slice(0,10);var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!Array.isArray(items))items=[];
   var exp=[];
   items.forEach(function(it){
     if(it.type==='모의고사'){var ym=(it.source||'').match(/(\d{2}(?:[·,]\d{2})*)\s*년/);var yrs=ym?ym[1].split(/[·,]/):[];
