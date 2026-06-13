@@ -385,11 +385,12 @@ function scopeItemHtml(it){
   it=it||{}; var type=it.type||'모의고사'; var f=it._f||parseItemToForm(it);
   var topts=SCOPE_TYPES.map(function(t){return '<option'+(type===t?' selected':'')+'>'+t+'</option>';}).join('');
   var sopts=['확정','예상'].map(function(s){return '<option'+(it.status===s?' selected':'')+'>'+s+'</option>';}).join('');
-  return '<div class="sc-item"><div class="row"><select class="sc-f-type" style="flex:0 0 102px;" onchange="scTypeChange(this)">'+topts+'</select><select class="sc-f-status" style="flex:0 0 88px;">'+sopts+'</select><button class="sc-del" onclick="this.closest(\'.sc-item\').remove()">삭제</button></div><div class="sc-sub" style="margin-top:8px;">'+subFormHtml(type,f)+'</div></div>';
+  var given=it.given||'안줌'; var gopts=['안줌','줬음'].map(function(s){return '<option'+(given===s?' selected':'')+'>'+s+'</option>';}).join('');
+  return '<div class="sc-item"><div class="row"><select class="sc-f-type" style="flex:0 0 92px;" onchange="scTypeChange(this)">'+topts+'</select><select class="sc-f-status" style="flex:0 0 72px;">'+sopts+'</select><select class="sc-f-given" style="flex:0 0 78px;" title="학생에게 줬는지">'+gopts+'</select><button class="sc-del" onclick="this.closest(\'.sc-item\').remove()">삭제</button></div><div class="sc-sub" style="margin-top:8px;">'+subFormHtml(type,f)+'</div></div>';
 }
 function addScopeItem(it,cid){document.getElementById(cid||'scItems').insertAdjacentHTML('beforeend',scopeItemHtml(it&&it.type?it:{type:'모의고사'}));}
 function buildItem(el){
-  var type=el.querySelector('.sc-f-type').value, status=el.querySelector('.sc-f-status').value, sub=el.querySelector('.sc-sub');
+  var type=el.querySelector('.sc-f-type').value, status=el.querySelector('.sc-f-status').value, given=(el.querySelector('.sc-f-given')||{}).value||'안줌', sub=el.querySelector('.sc-sub');
   var source='', range='', f={};
   function pick(){var s=sub.querySelector('.scf-pick'),c=sub.querySelector('.scf-custom');return (s.value==='직접 입력'&&c)?c.value.trim():s.value;}
   function gr(){var g=sub.querySelector('.gsel');return g?gridRange(g):'';}
@@ -399,27 +400,38 @@ function buildItem(el){
   else if(type==='교과서'){var pub=pick(),bk=sub.querySelector('.scf-book2').value;range=txt();f={pub:pub,book:bk,range:range};source=(pub+' '+bk).trim();}
   else if(type==='단어'){source=pick();range=txt();f={book:source,range:range};}
   else{var se=sub.querySelector('.scf-src');source=se?se.value.trim():'';range=txt();f={src:source,range:range};}
-  return {type:type,source:source,range:range,status:status,_f:f};
+  return {type:type,source:source,range:range,status:status,given:given,_f:f};
 }
 function collectScope(cid){var items=[];document.querySelectorAll('#'+(cid||'scItems')+' .sc-item').forEach(function(el){var it=buildItem(el);if(!it.source&&!it.range)return;items.push(it);});return items;}
 function newScope(){scEditing=null;document.getElementById('scFormTitle').textContent='새 시험범위';document.getElementById('scEditId').textContent='';['scSchool','scExam','scDate'].forEach(function(id){document.getElementById(id).value='';});document.getElementById('scItems').innerHTML='';addScopeItem();document.getElementById('scMsg').textContent='';}
 function saveScope(){var school=document.getElementById('scSchool').value.trim();var grade=document.getElementById('scGrade').value;var m=document.getElementById('scMsg');if(!school){m.className='status err';m.textContent='학교를 입력하세요';return;}var items=collectScope();var b=document.getElementById('scSaveBtn');b.disabled=true;m.textContent='';post({action:'scopeSave',id:scEditing||'',byId:user.id,byName:user.name,school:school,grade:grade,examName:document.getElementById('scExam').value.trim(),examDate:document.getElementById('scDate').value,items:JSON.stringify(items)}).then(function(j){b.disabled=false;if(j&&j.ok){m.className='status ok';m.textContent='저장 완료';scEditing=j.id;document.getElementById('scEditId').textContent='(수정 모드)';document.getElementById('scFormTitle').textContent='시험범위 수정';loadScopeList();}else{m.className='status err';m.textContent='실패: '+((j&&j.error)||'');}});}
 function statusBadge(s){return s==='예상'?'<span class="badge b-expect">예상</span>':'<span class="badge b-fixed">확정</span>';}
-function scopeCard(s,actions){var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!Array.isArray(items))items=[];var rows=items.map(function(it){return '<div class="sc-row"><span class="sc-tp">'+esc(it.type||'')+'</span><span style="flex:1;"><span class="sc-src">'+esc(it.source||'')+'</span>'+(it.range?' <span class="sc-mini">'+esc(it.range)+'</span>':'')+'</span>'+statusBadge(it.status)+'</div>';}).join('')||'<div class="sc-mini" style="padding:6px 0;">항목 없음</div>';var act=actions?'<div class="row" style="margin-top:8px;"><button class="btn btn-ghost" onclick="editScope(\''+s.id+'\')">수정</button><button class="sc-del" style="flex:1;" onclick="deleteScope(\''+s.id+'\')">삭제</button></div>':'';return '<div class="card"><div class="sc-head"><b>'+esc(s.school)+' '+esc(s.grade)+'</b>'+(s.examName?'<span class="sc-mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="sc-mini">· '+esc(s.examDate)+'</span>':'')+'</div>'+rows+act+'</div>';}
+function givenBadge(g){return g==='줬음'?'<span class="badge b-ok">✓ 줬음</span>':'<span class="badge b-no">❗안 줌</span>';}
+function scopeCard(s,actions){var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!Array.isArray(items))items=[];var rows=items.map(function(it){return '<div class="sc-row"><span class="sc-tp">'+esc(it.type||'')+'</span><span style="flex:1;"><span class="sc-src">'+esc(it.source||'')+'</span>'+(it.range?' <span class="sc-mini">'+esc(it.range)+'</span>':'')+'</span>'+givenBadge(it.given)+statusBadge(it.status)+'</div>';}).join('')||'<div class="sc-mini" style="padding:6px 0;">항목 없음</div>';var act=actions?'<div class="row" style="margin-top:8px;"><button class="btn btn-ghost" onclick="editScope(\''+s.id+'\')">수정</button><button class="sc-del" style="flex:1;" onclick="deleteScope(\''+s.id+'\')">삭제</button></div>':'';return '<div class="card"><div class="sc-head"><b>'+esc(s.school)+' '+esc(s.grade)+'</b>'+(s.examName?'<span class="sc-mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="sc-mini">· '+esc(s.examDate)+'</span>':'')+'</div>'+rows+act+'</div>';}
 function renderScopeList(L){L.innerHTML=scopeCache.length?scopeCache.map(function(s){return scopeCard(s,true);}).join(''):'<div class="card empty">저장된 시험범위가 없어요.</div>';}
-function loadScopeList(){var L=document.getElementById('scList');var ck='hw_scope_cache_'+user.id;var cached=null;try{cached=JSON.parse(localStorage.getItem(ck)||'null');}catch(e){}
+function loadScopeList(pre){var L=document.getElementById('scList');var ck='hw_scope_cache_'+user.id;
+  if(pre){scopeCache=pre;try{localStorage.setItem(ck,JSON.stringify(pre));}catch(e){}renderScopeList(L);return;}
+  var cached=null;try{cached=JSON.parse(localStorage.getItem(ck)||'null');}catch(e){}
   if(cached&&cached.length){scopeCache=cached;renderScopeList(L);}else{L.innerHTML='<div class="empty">불러오는 중…</div>';}
   jsonp2(HW_API+'?action=scopeList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
     if(j&&j.scopes){scopeCache=j.scopes;try{localStorage.setItem(ck,JSON.stringify(j.scopes));}catch(e){}renderScopeList(L);}
     else if(!(cached&&cached.length)){L.innerHTML='<div class="card empty">불러오기 실패 — 잠시 후 다시 시도해주세요.</div>';}
   });}
-function initScope(){if(!document.getElementById('scItems').children.length)newScope();loadScopeList();loadBriefs();loadSubs();}
+function initScope(){if(!document.getElementById('scItems').children.length)newScope();
+  // 캐시 즉시 표시(네트워크 대기 없음)
+  try{var ck='hw_scope_cache_'+user.id;var c=JSON.parse(localStorage.getItem(ck)||'null');var L=document.getElementById('scList');if(c&&c.length){scopeCache=c;renderScopeList(L);}else{L.innerHTML='<div class="empty">불러오는 중…</div>';}}catch(e){}
+  // scopeInit 1콜로 시험범위+제출+브리핑 한 번에(백엔드 배포 시). 없으면 기존 3콜 폴백
+  jsonp(HW_API+'?action=scopeInit&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
+    if(j&&j.scopes!==undefined){loadScopeList(j.scopes||[]);loadSubs({subs:j.subs||[],newCount:j.subNew||0});loadBriefs({briefs:j.briefs||[],newCount:j.briefNew||0});}
+    else{loadScopeList();loadSubs();loadBriefs();}
+  });
+}
 function editScope(id){var s=scopeCache.find(function(x){return x.id===id;});if(!s)return;scEditing=id;document.getElementById('scFormTitle').textContent='시험범위 수정';document.getElementById('scEditId').textContent='(수정 모드)';function setSel(id,val){var sel=document.getElementById(id);if(!sel)return;if(val&&![].slice.call(sel.options).some(function(o){return o.value===val;}))sel.insertAdjacentHTML('beforeend','<option>'+esc(val)+'</option>');sel.value=val;}
   setSel('scSchool',s.school);if(s.grade)document.getElementById('scGrade').value=s.grade;setSel('scExam',s.examName||'');document.getElementById('scDate').value=(s.examDate||'').slice(0,10);var items=[];try{items=JSON.parse(s.items||'[]');}catch(e){}if(!Array.isArray(items))items=[];
   var exp=[];
   items.forEach(function(it){
     if(it.type==='모의고사'){var ym=(it.source||'').match(/(\d{2}(?:[·,]\d{2})*)\s*년/);var yrs=ym?ym[1].split(/[·,]/):[];
-      if(yrs.length>1){var base=(it.source||'').replace(/\(?\s*\d{2}(?:[·,]\d{2})*\s*년\s*\)?/,'').replace(/[()]/g,'').trim();yrs.forEach(function(y){exp.push({type:'모의고사',source:y+'년 '+base,range:it.range,status:it.status});});return;}}
+      if(yrs.length>1){var base=(it.source||'').replace(/\(?\s*\d{2}(?:[·,]\d{2})*\s*년\s*\)?/,'').replace(/[()]/g,'').trim();yrs.forEach(function(y){exp.push({type:'모의고사',source:y+'년 '+base,range:it.range,status:it.status,given:it.given});});return;}}
     exp.push(it);
   });
   if(!exp.length)exp=[{type:'모의고사'}];
@@ -577,9 +589,9 @@ function ssSubmit(){
 var briefNew=0, subNew=0;
 function updateScopeDot(){var dot=document.getElementById('briefDot');if(!dot)return;var t=briefNew+subNew;if(t>0){dot.textContent=t;dot.classList.remove('hidden');}else{dot.classList.add('hidden');}}
 // 선생님 학생 제출 승인함
-function loadSubs(){
+function loadSubs(data){
   if(!isTeacher)return;
-  jsonp2(HW_API+'?action=scopeSubmitList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
+  function render(j){
     var subs=(j&&j.subs)||[]; subNew=(j&&j.newCount)||0; updateScopeDot();
     var inbox=document.getElementById('subInbox'); if(!inbox)return;
     var box=document.getElementById('subListBox'),badge=document.getElementById('subBadge');
@@ -588,7 +600,9 @@ function loadSubs(){
     inbox.classList.remove('hidden');
     badge.textContent='대기 '+pend.length;badge.classList.remove('hidden');
     box.innerHTML=pend.map(subCard).join('');
-  });
+  }
+  if(data){render(data);return;}
+  jsonp2(HW_API+'?action=scopeSubmitList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(render);
 }
 function subCard(u){
   var items=[];try{items=JSON.parse(u.items||'[]');}catch(e){}
@@ -598,9 +612,9 @@ function subCard(u){
 function approveSub(id){post({action:'scopeApprove',byId:user.id,byName:user.name,id:id}).then(function(j){if(j&&j.ok){loadSubs();loadScopeList();}else alert('실패: '+((j&&j.error)||''));});}
 function rejectSub(id){if(!confirm('이 제출을 반려할까요?'))return;post({action:'scopeSubReject',byId:user.id,id:id,status:'반려'}).then(function(j){if(j&&j.ok)loadSubs();else alert('실패');});}
 // 선생님 브리핑 알림함
-function loadBriefs(){
+function loadBriefs(data){
   if(!isTeacher)return;
-  jsonp2(HW_API+'?action=briefList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
+  function render(j){
     var briefs=(j&&j.briefs)||[], nc=(j&&j.newCount)||0;
     briefNew=nc; updateScopeDot();
     var inbox=document.getElementById('briefInbox'); if(!inbox)return;
@@ -612,7 +626,9 @@ function loadBriefs(){
       var isNew=b.status==='신규';
       return '<div class="hw"'+(isNew?' style="border-color:var(--danger-line);background:var(--danger-soft);"':'')+'><div class="hw-top"><span class="hw-title">'+esc(b.stuName)+' <span class="sc-mini">'+esc(b.school)+' '+esc(b.grade)+'</span></span>'+(isNew?'<span class="badge b-no">신규</span>':'<span class="badge b-ok">처리됨</span>')+'</div><div class="hw-meta" style="font-size:13.5px;color:var(--ink);">'+esc(b.msg)+'</div><div class="hw-meta">'+esc(b.at)+'</div>'+(isNew?'<button class="btn btn-ghost" style="margin-top:6px;" onclick="handleBrief(\''+b.id+'\')">확인 완료</button>':'')+'</div>';
     }).join('');
-  });
+  }
+  if(data){render(data);return;}
+  jsonp2(HW_API+'?action=briefList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(render);
 }
 function handleBrief(id){post({action:'briefHandle',byId:user.id,id:id,status:'처리됨'}).then(function(j){if(j&&j.ok)loadBriefs();else alert('실패');});}
 </script></body></html>
