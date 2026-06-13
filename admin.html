@@ -1,0 +1,151 @@
+<!doctype html><html lang="ko"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>시험범위 관리 — 에이닷</title>
+<style>
+:root{--bg:#F6F2EC;--surface:#fff;--surface-alt:#FBF7F1;--ink:#2A231D;--ink2:#6E6356;--ink3:#A39686;--line:#ECE4D8;--line-s:#DCCFBC;--brand:#B5562E;--brand-soft:#F7E9DD;--brand-dark:#8E3F1F;--ok:#4E7A4C;--ok-soft:#E8F0E3;--ok-line:#BFD6B8;--no:#C0432B;--no-soft:#F8E3DE;--accent:#5E7152;--accent-soft:#E9EEE3;--gold:#B58A3C;--gold-soft:#F6ECD4;--shadow:0 6px 18px rgba(74,55,40,.07);--shadow-sm:0 1px 2px rgba(58,40,28,.05);}
+*{box-sizing:border-box;}body{margin:0;background:var(--bg);color:var(--ink);font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px 60px;}
+.hero{background:var(--brand-soft);border:1px solid #E8CDB8;border-top:none;border-radius:0 0 22px 22px;padding:22px 24px;margin-bottom:18px;box-shadow:var(--shadow);}
+.hero h1{margin:0;font-size:22px;color:var(--ink);}.hero p{margin:4px 0 0;color:var(--ink2);font-size:13.5px;}
+.hidden{display:none!important;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:14px;}
+.login{max-width:380px;margin:40px auto;}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line-s);border-radius:10px;background:#fff;color:var(--ink);}
+input{width:100%;}
+.btn{font:inherit;font-weight:700;border:1px solid var(--brand);background:var(--brand);color:#fff;padding:9px 14px;border-radius:11px;cursor:pointer;}
+.btn:hover{background:var(--brand-dark);}.btn:active{transform:scale(.99);}
+.btn-ghost{background:#fff;color:var(--ink2);border:1px solid var(--line-s);}.btn-ghost:hover{color:var(--brand);border-color:#E8CDB8;}
+.btn-sm{padding:5px 10px;border-radius:9px;font-size:12.5px;}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.summary{color:var(--ink2);font-size:13px;margin-left:auto;}
+.summary b{color:var(--no);}
+.schoolgrp{margin-bottom:8px;}
+.school-h{font-size:16px;font-weight:800;color:var(--brand-dark);margin:18px 0 8px;border-left:4px solid var(--gold);padding-left:9px;}
+.scope{border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:10px;background:var(--surface);box-shadow:var(--shadow-sm);}
+.scope-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.scope-h b{font-size:15px;}
+.gradetag{background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;}
+.mini{color:var(--ink3);font-size:12.5px;}
+.scope-acts{margin-left:auto;display:flex;gap:6px;}
+.it{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);}
+.it:first-of-type{border-top:none;}
+.tp{flex:0 0 auto;background:var(--brand-soft);color:var(--brand-dark);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:7px;}
+.src{flex:1;min-width:0;}.src .s{font-weight:600;}.src .r{color:var(--ink3);font-size:12.5px;margin-left:4px;}
+.badge{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;border:none;cursor:pointer;white-space:nowrap;}
+.b-no{background:var(--no-soft);color:var(--no);}.b-ok{background:var(--ok-soft);color:var(--ok);}
+.b-fixed{background:var(--ok-soft);color:var(--ok);cursor:default;}.b-expect{background:var(--gold-soft);color:var(--gold);cursor:default;}
+.dup{background:var(--surface-alt);border:1px dashed #E8CDB8;border-radius:12px;padding:12px;margin-top:10px;}
+.dup-row{display:flex;gap:8px;margin-bottom:7px;align-items:center;}
+.dup-row input{flex:1;}.dup-row select{flex:0 0 90px;}
+.status{font-size:12.5px;margin-left:8px;}.status.ok{color:var(--ok);}.status.err{color:var(--no);}
+.empty{color:var(--ink3);text-align:center;padding:30px;}
+a.link{color:var(--brand);text-decoration:none;font-weight:700;font-size:13px;}
+</style></head><body>
+<div class="hero"><div class="wrap" style="padding:0;"><h1>시험범위 관리</h1><p>전체 학교·학년 시험범위를 한눈에 보고, 줬/안줌 토글·복제·삭제 (숙제CRM과 데이터 공유)</p></div></div>
+<div class="wrap">
+  <div id="loginCard" class="card login">
+    <p style="margin-top:0;font-weight:700;">선생님 로그인</p>
+    <input id="tid" placeholder="아이디 (예: 상균T)" onkeydown="if(event.key==='Enter')doLogin()">
+    <div style="margin-top:10px;"><button class="btn" onclick="doLogin()">로그인</button><span id="lmsg" class="status err"></span></div>
+  </div>
+  <div id="app" class="hidden">
+    <div class="toolbar">
+      <button class="btn-ghost btn btn-sm" onclick="load()">↻ 새로고침</button>
+      <a class="link" href="./index.html" target="_blank">＋ 새 범위 만들기 / 상세 편집 (숙제CRM) ↗</a>
+      <span id="summary" class="summary"></span>
+    </div>
+    <div id="list"><div class="empty">불러오는 중…</div></div>
+  </div>
+</div>
+<script>
+var TOKEN='adot2026classroom';
+var HW_API='https://script.google.com/macros/s/AKfycbx1M1lbLNpnKuhEdakjx5S7LL6jnbKSzv6PAZn5k9-zaGMD7AN6PyqJrcP3tC2IdcZ1/exec';
+var TEACHERS={'상균T':'신상균','shinsg0103':'신상균'};
+var GRADES=['고1','고2','고3','중1','중2','중3'];
+var user=null, scopes=[];
+function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+function jsonp(url){return new Promise(function(res){var fn='__cb'+Math.floor(Math.random()*1e9);var s=document.createElement('script');var done=false;function cu(){try{delete window[fn]}catch(e){}if(s.parentNode)s.remove();}window[fn]=function(o){if(done)return;done=true;cu();res(o);};s.onerror=function(){if(done)return;done=true;cu();res(null);};s.src=url+(url.indexOf('?')<0?'?':'&')+'callback='+fn;document.body.appendChild(s);setTimeout(function(){if(!done){done=true;cu();res(null);}},14000);});}
+function jsonp2(url){return jsonp(url).then(function(j){return j!==null?j:jsonp(url);});}
+function post(params){var fd=new FormData();fd.append('token',TOKEN);for(var k in params)fd.append(k,params[k]==null?'':params[k]);return fetch(HW_API,{method:'POST',body:fd}).then(function(r){return r.json();}).catch(function(){return{ok:false,error:'네트워크 오류'};});}
+function doLogin(){var id=(document.getElementById('tid').value||'').trim();if(!id){return;}if(!TEACHERS[id]&&!/T$/i.test(id)){document.getElementById('lmsg').textContent='선생님 아이디만 가능해요';return;}user={id:id,name:TEACHERS[id]||id};try{localStorage.setItem('hw_admin',JSON.stringify(user));}catch(e){}document.getElementById('loginCard').classList.add('hidden');document.getElementById('app').classList.remove('hidden');load();}
+(function(){try{var s=JSON.parse(localStorage.getItem('hw_admin')||'null');if(s&&s.id){user=s;document.getElementById('loginCard').classList.add('hidden');document.getElementById('app').classList.remove('hidden');load();}}catch(e){}})();
+
+function load(){var L=document.getElementById('list');
+  var cached=null;try{cached=JSON.parse(localStorage.getItem('hw_scope_admin')||'null');}catch(e){}
+  if(cached&&cached.length){scopes=cached;render();}else{L.innerHTML='<div class="empty">불러오는 중…</div>';}
+  jsonp2(HW_API+'?action=scopeList&token='+TOKEN+'&id='+encodeURIComponent(user.id)).then(function(j){
+    if(j&&j.scopes){scopes=j.scopes;try{localStorage.setItem('hw_scope_admin',JSON.stringify(scopes));}catch(e){}render();}
+    else if(!(cached&&cached.length)){L.innerHTML='<div class="empty">불러오기 실패 — 새로고침 해주세요.</div>';}
+  });
+}
+function parseItems(s){var a=[];try{a=JSON.parse(s.items||'[]');}catch(e){}return Array.isArray(a)?a:[];}
+function render(){
+  var L=document.getElementById('list');
+  if(!scopes.length){L.innerHTML='<div class="card empty">저장된 시험범위가 없어요. 숙제CRM에서 먼저 만들어 주세요.</div>';document.getElementById('summary').textContent='';return;}
+  // 요약
+  var totalItems=0,notGiven=0;
+  scopes.forEach(function(s){parseItems(s).forEach(function(it){totalItems++;if((it.given||'안줌')!=='줬음')notGiven++;});});
+  document.getElementById('summary').innerHTML='범위 '+scopes.length+'개 · 항목 '+totalItems+'개 · <b>안 줌 '+notGiven+'개</b>';
+  // 학교별 그룹
+  var byS={};scopes.forEach(function(s){(byS[s.school]=byS[s.school]||[]).push(s);});
+  var html='';
+  Object.keys(byS).sort().forEach(function(school){
+    html+='<div class="school-h">'+esc(school||'(학교 미지정)')+'</div>';
+    byS[school].sort(function(a,b){return (a.grade||'').localeCompare(b.grade||'');}).forEach(function(s){
+      html+=scopeHtml(s);
+    });
+  });
+  L.innerHTML=html;
+}
+function scopeHtml(s){
+  var items=parseItems(s);
+  var rows=items.map(function(it,idx){
+    var given=(it.given||'안줌')==='줬음';
+    var gb='<button class="badge '+(given?'b-ok':'b-no')+'" onclick="toggleGiven(\''+s.id+'\','+idx+')" title="클릭해서 줬/안줌 전환">'+(given?'✓ 줬음':'❗안 줌')+'</button>';
+    var sb=(it.status==='예상')?'<span class="badge b-expect">예상</span>':'<span class="badge b-fixed">확정</span>';
+    return '<div class="it"><span class="tp">'+esc(it.type||'')+'</span><span class="src"><span class="s">'+esc(it.source||'')+'</span>'+(it.range?'<span class="r">'+esc(it.range)+'</span>':'')+'</span>'+gb+sb+'</div>';
+  }).join('')||'<div class="mini" style="padding:6px 0;">항목 없음</div>';
+  return '<div class="scope" id="sc_'+s.id+'"><div class="scope-h"><b>'+esc(s.school)+'</b><span class="gradetag">'+esc(s.grade)+'</span>'+(s.examName?'<span class="mini">'+esc(s.examName)+'</span>':'')+(s.examDate?'<span class="mini">· '+esc(s.examDate)+'</span>':'')+
+    '<span class="scope-acts"><button class="btn btn-ghost btn-sm" onclick="openDup(\''+s.id+'\')">복제</button><a class="btn btn-ghost btn-sm" href="./index.html" target="_blank" style="text-decoration:none;">상세편집↗</a><button class="btn btn-ghost btn-sm" style="color:var(--no);border-color:var(--no-soft);" onclick="delScope(\''+s.id+'\')">삭제</button></span></div>'+
+    rows+'<div id="dup_'+s.id+'"></div></div>';
+}
+function findScope(id){return scopes.find(function(s){return s.id===id;});}
+function saveScope(s,cb){post({action:'scopeSave',id:s.id,byId:user.id,byName:user.name,school:s.school,grade:s.grade,examName:s.examName||'',examDate:(s.examDate||'').slice(0,10),items:s.items}).then(cb||function(){});}
+function toggleGiven(id,idx){
+  var s=findScope(id);if(!s)return;var items=parseItems(s);if(!items[idx])return;
+  items[idx].given=((items[idx].given||'안줌')==='줬음')?'안줌':'줬음';
+  s.items=JSON.stringify(items);
+  try{localStorage.setItem('hw_scope_admin',JSON.stringify(scopes));}catch(e){}
+  render();
+  saveScope(s);
+}
+function delScope(id){var s=findScope(id);if(!s)return;if(!confirm('['+s.school+' '+s.grade+(s.examName?' '+s.examName:'')+'] 시험범위를 삭제할까요?'))return;
+  post({action:'scopeDelete',byId:user.id,id:id}).then(function(j){if(j&&j.ok){scopes=scopes.filter(function(x){return x.id!==id;});try{localStorage.setItem('hw_scope_admin',JSON.stringify(scopes));}catch(e){}render();}else alert('실패');});
+}
+// ── 복제 / 일괄 적용 ──
+function openDup(id){
+  var box=document.getElementById('dup_'+id);if(!box)return;
+  if(box.innerHTML){box.innerHTML='';return;}
+  var s=findScope(id);
+  box.innerHTML='<div class="dup"><div class="mini" style="margin-bottom:8px;">이 범위 항목을 그대로 <b>다른 학교·학년</b>에 복제합니다. 대상을 추가하세요.</div>'+
+    '<div id="dt_'+id+'">'+dupRow()+'</div>'+
+    '<div style="display:flex;gap:8px;margin-top:4px;"><button class="btn btn-ghost btn-sm" onclick="addDupRow(\''+id+'\')">＋ 대상 추가</button><button class="btn btn-sm" onclick="runDup(\''+id+'\')">복제 실행</button><span id="dmsg_'+id+'" class="status"></span></div></div>';
+}
+function dupRow(){return '<div class="dup-row"><input class="dt-school" placeholder="대상 학교명"><select class="dt-grade">'+GRADES.map(function(g){return '<option>'+g+'</option>';}).join('')+'</select><button class="btn btn-ghost btn-sm" onclick="this.closest(\'.dup-row\').remove()">×</button></div>';}
+function addDupRow(id){document.getElementById('dt_'+id).insertAdjacentHTML('beforeend',dupRow());}
+function runDup(id){
+  var s=findScope(id);if(!s)return;
+  var rows=[].slice.call(document.querySelectorAll('#dt_'+id+' .dup-row'));
+  var targets=[];rows.forEach(function(r){var sc=(r.querySelector('.dt-school').value||'').trim();var gr=r.querySelector('.dt-grade').value;if(sc)targets.push({school:sc,grade:gr});});
+  var msg=document.getElementById('dmsg_'+id);
+  if(!targets.length){msg.className='status err';msg.textContent='대상 학교를 입력하세요';return;}
+  msg.className='status';msg.textContent='복제 중… (0/'+targets.length+')';
+  var done=0;
+  function next(i){
+    if(i>=targets.length){msg.className='status ok';msg.textContent='✓ '+targets.length+'곳 복제 완료';load();return;}
+    var t=targets[i];
+    post({action:'scopeSave',id:'',byId:user.id,byName:user.name,school:t.school,grade:t.grade,examName:s.examName||'',examDate:(s.examDate||'').slice(0,10),items:s.items}).then(function(){done++;msg.textContent='복제 중… ('+done+'/'+targets.length+')';next(i+1);});
+  }
+  next(0);
+}
+</script></body></html>
